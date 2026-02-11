@@ -1,0 +1,36 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts"
+  },
+  "start": "node --max-old-space-size=512 ./dist/server.js",
+  "keywords": [],
+  "author": "castrol banda",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.984.0",
+    "@aws-sdk/s3-request-presigner": "^3.984.0",
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongoose": "^9.1.2",
+    "multer": "^2.0.2",
+    "nodemon": "^3.1.11",
+    "stripe": "^20.1.2"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^25.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
