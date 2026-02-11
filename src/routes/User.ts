@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 dotenv.config();
-import bodyParser from 'body-parser';
 import express from "express";
 const router = express.Router();
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -8,6 +7,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import stripe from "../config/stripe";
 import { Stripe } from "stripe";
 import Projects from "../models/Projects";
+import { transport } from "../util/nodemailer";
 
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 if (!stripeWebhookSecret) {
@@ -135,6 +135,34 @@ router.post("/payments/activate-subscription", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+//contact us 
+router.post("/contact", async (req, res) => {
+  const { name, email, subject, message } = req.body;
+
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    await transport.sendMail({
+      from: `"${name}" <${email}>`,
+      to: "castrolmkude@gmail.com",//nyumbaninala email 
+      subject: `[Contact Form] ${subject}`,
+      html: `
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Message:</strong></p>
+        <p>${message}</p>
+      `,
+    });
+
+    res.status(201).json({ message: "Message sent successfully!" });
+  } catch (err) {
+    console.error("Failed to send contact form email", err);
+    res.status(500).json({ message: "Failed to send message." });
   }
 });
 
