@@ -8,6 +8,9 @@ import stripe from "../config/stripe";
 import { Stripe } from "stripe";
 import Projects from "../models/Projects";
 import { transport } from "../util/nodemailer";
+import Partner from "../models/Partner";
+import multer from "multer";
+import crypto from "crypto";
 
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 if (!stripeWebhookSecret) {
@@ -31,6 +34,10 @@ const s3 = new S3Client({
     secretAccessKey: secretAccessKey
   }, region
 })
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+const randomImageName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
 
 //fetching all the projects
 router.get("/projects", async (req, res) => {
@@ -213,6 +220,29 @@ router.post("/payments/create-subscription", async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+//become a partner route
+router.post("/partners/apply",upload.single("document"), async (req, res) => {
+  const { fullName, organizationName, email, phone, message } = req.body;
+  if(!fullName || !email || !phone || !message) {
+    return res.status(400).json({ message: "Please fill in all required fields." });
+  }
+  const newPartner = new Partner({
+    fullName,
+    organizationName,
+    email,
+    phone,
+    proposal: message,
+    partnershipType: "sponsor"
+  });
+  try {
+    await newPartner.save();
+    res.status(201).json({ message: "Partner application submitted successfully!" });
+  } catch (err) {
+    console.error("Error saving partner application:", err);
+    res.status(500).json({ message: "Failed to submit partner application." });
+  }
+})
 
 
 //generating signed urls

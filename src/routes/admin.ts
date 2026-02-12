@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
-import express from "express";
+import express, { Request } from "express";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import crypto from "crypto";
@@ -8,6 +8,7 @@ import User from "../models/User";
 import Projects from "../models/Projects";
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import Partner from "../models/Partner";
 const router = express.Router();
 
 const adminPassword = process.env.ADMIN_PASSWORD;
@@ -61,6 +62,45 @@ const sudoAdmin = async () => {
 }
 
 sudoAdmin();
+
+
+//get all partners
+router.get("/admin/partners", async (req, res) => {
+    const partners = await Partner.find();
+    res.json(partners);
+});
+
+//approve a partner application
+router.put("/admin/partners/:id/approve", async (req, res) => {
+    const partner = await Partner.findById(req.params.id);
+    if (!partner) return res.status(404).json({ message: "Partner not found" });
+    partner.status = "approved";
+    partner.reviewedAt = new Date();
+    // partner.reviewedBy = req.user._id;
+
+    await partner.save();
+
+    res.json({ message: "Partner approved successfully" });
+});
+
+
+router.put("/admin/partners/:id/reject", async (req, res) => {
+    const { note } = req.body;
+
+    const partner = await Partner.findById(req.params.id);
+    if (!partner) return res.status(404).json({ message: "Partner not found" });
+
+    partner.status = "rejected";
+    partner.adminNotes = note;
+    partner.reviewedAt = new Date();
+    // partner.reviewedBy = req.user._id;
+
+    await partner.save();
+
+    res.json({ message: "Partner rejected" });
+});
+
+
 
 
 //add a project
