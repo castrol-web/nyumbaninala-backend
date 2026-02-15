@@ -107,16 +107,9 @@ router.put("/admin/partners/:id/reject", async (req, res) => {
 router.post("/create/projects", upload.single('projectImage'), async (req, res) => {
     try {
 
-        const { data } = req.body; // data is a JSON string
-        let parsedData;
-
-        try {
-            parsedData = JSON.parse(data); // <-- parse JSON string to object
-        } catch (err) {
-            return res.status(400).json({ message: "Invalid JSON data" });
-        }
-        if (!parsedData.title || !parsedData.summary || !parsedData.goals) {
-            return res.status(400).json({ message: "A project should have atleast a title a summary and goals" })
+        const { title, summary } = req.body; // data is a JSON string
+        if (!title || !summary) {
+            return res.status(400).json({ message: "A project should have atleast a title and a summary" })
         }
         const projectImage = randomImageName();
         if (!req.file || !req.file.buffer) {
@@ -131,15 +124,9 @@ router.post("/create/projects", upload.single('projectImage'), async (req, res) 
         const command = new PutObjectCommand(params);
         await s3.send(command);
         const newProject = new Projects({
-            address: parsedData.address,
-            year: parsedData.year,
-            title: parsedData.title,
-            summary: parsedData.summary,
-            requirements: parsedData.requirements,
-            goals: parsedData.goals,
-            contact: parsedData.contact,
+            title,
+            summary,
             projectImage,
-            teamMembers: parsedData.teamMembers
         })
         await newProject.save();
         res.status(200).json({ message: "project created successfully" })
@@ -182,17 +169,9 @@ router.put("/edit/project/:id", upload.single("projectImage"), async (req, res) 
         const project = await Projects.findById(projectId);
         if (!project) return res.status(404).json({ message: "Project not found" });
 
-        // Parse JSON data
-        let parsedData;
-        try {
-            parsedData = JSON.parse(req.body.data);
-        } catch {
-            return res.status(400).json({ message: "Invalid JSON data" });
-        }
-
-        const { title, summary, goals } = parsedData;
-        if (!title || !summary || !goals?.length) {
-            return res.status(400).json({ message: "A project should have at least a title, summary, and goals" });
+        const { title, summary} = req.body; // data is a JSON string
+        if (!title || !summary) {
+            return res.status(400).json({ message: "A project should have at least a title and a summary" });
         }
 
         // If new image uploaded, delete old one and upload new one
@@ -213,7 +192,7 @@ router.put("/edit/project/:id", upload.single("projectImage"), async (req, res) 
         }
 
         // Update other fields
-        Object.assign(project, parsedData);
+        Object.assign(project, { title, summary });
         await project.save();
 
         res.status(200).json({ message: "Project updated successfully" });
