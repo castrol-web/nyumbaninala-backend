@@ -174,7 +174,7 @@ router.put("/edit/project/:id", upload.single("projectImage"), async (req, res) 
             return res.status(400).json({ message: "A project should have at least a title and a summary" });
         }
 
-        // If new image uploaded, delete old one and upload new one
+        // If new image uploaded, delete old one and upload new this one
         if (req.file && req.file.buffer) {
             if (project.projectImage) {
                 await s3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: project.projectImage }));
