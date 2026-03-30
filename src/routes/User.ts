@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 const router = express.Router();
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import stripe from "../config/stripe";
 import { Stripe } from "stripe";
@@ -222,20 +222,33 @@ router.post("/payments/create-subscription", async (req, res) => {
 });
 
 //become a partner route
-router.post("/partners/apply",upload.single("document"), async (req, res) => {
-  const { fullName, organizationName, email, phone, message } = req.body;
-  if(!fullName || !email || !phone || !message) {
-    return res.status(400).json({ message: "Please fill in all required fields." });
-  }
-  const newPartner = new Partner({
-    fullName,
-    organizationName,
-    email,
-    phone,
-    proposal: message,
-    partnershipType: "sponsor"
-  });
+router.post("/partners/apply", upload.single("document"), async (req, res) => {
   try {
+    const { fullName, organizationName, email, phone, proposal, country, partnershipType } = req.body;
+    if (!fullName || !email || !phone || !proposal || !country) {
+      return res.status(400).json({ message: "Please fill in all required fields." });
+    }
+    const newPartner = new Partner({
+      fullName,
+      organizationName,
+      email,
+      phone,
+      proposal,
+      country,
+      partnershipType
+    });
+    const document = req.file;
+    if (document && document.buffer) {
+      const documentKey = randomImageName();
+      const params = {
+        Bucket: bucketName,
+        Key: documentKey,
+        Body: document.buffer,
+        ContentType: document.mimetype
+      }
+      await s3.send(new PutObjectCommand(params));
+      newPartner.documentUrl = documentKey;
+    }
     await newPartner.save();
     res.status(201).json({ message: "Partner application submitted successfully!" });
   } catch (err) {
