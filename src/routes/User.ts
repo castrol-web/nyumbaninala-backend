@@ -6,11 +6,12 @@ import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import stripe from "../config/stripe";
 import { Stripe } from "stripe";
-import Projects from "../models/Projects";
+import Projects from "../models/Project";
 import { transport } from "../util/nodemailer";
 import Partner from "../models/Partner";
 import multer from "multer";
 import crypto from "crypto";
+import Volunteer from "../models/Volunteer";
 
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 if (!stripeWebhookSecret) {
@@ -51,16 +52,16 @@ router.get("/projects", async (req, res) => {
     const projectsWithUrls = await Promise.all(
       projects.map(async (project) => {
         let signedUrl = "";
-        if (project.projectImage) {
+        if (project.coverImage) {
           try {
-            signedUrl = await generateSignedUrl(project.projectImage);
+            signedUrl = await generateSignedUrl(project.coverImage);
           } catch (err) {
             console.error("Failed to generate signed URL for project:", project._id, err);
           }
         }
         return {
           ...project.toObject(),
-          projectImage: signedUrl, // replace key with signed URL
+          coverImage: signedUrl, // replace key with signed URL
         };
       })
     );
@@ -256,6 +257,43 @@ router.post("/partners/apply", upload.single("document"), async (req, res) => {
     res.status(500).json({ message: "Failed to submit partner application." });
   }
 })
+
+//volunteer application route
+router.post("/volunteers", async (req, res) => {
+  try {
+    const { name, email, country, phone, gender, startDate, endDate, skills, message, interests } = req.body;
+
+    if(!name || !email || !country || !phone || !gender || !startDate || !endDate) {
+      return res.status(400).json({ message: "Please fill in all required fields." });
+    }
+    
+    // calculate duration in days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const durationDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+    // create volunteer instance
+    const volunteer = new Volunteer({
+      name,
+      email,
+      country,
+      phone,
+      gender,
+      startDate,
+      endDate,
+      skills,
+      message,
+      interests,
+      duration: durationDays
+    });
+
+    await volunteer.save();
+
+    res.status(201).json({ message: "Volunteer application submitted" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 //generating signed urls
