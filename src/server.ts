@@ -2,23 +2,46 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from 'express';
 import bodyParser from 'body-parser';
+import http from "http";
+import { Server } from "socket.io";
 import mongoose from 'mongoose';
 import cors from 'cors';
 import adminRouter from "./routes/admin";
 import userRouter from "./routes/User";
 
+
+//cors
 const app = express();
 //cross origin middleware 
 app.use(cors({
-    origin: ["http://localhost:5173","https://nyumbaninala.onrender.com"],
-     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin: ["http://localhost:5173", "https://nyumbaninala.onrender.com"],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
+
+//socket server
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: ["http://localhost:5173", "https://nyumbaninala.onrender.com"],
+    }
+})
+
+
+io.on("connection", (socket) => {
+    console.log("client connected", socket.id)
+    socket.on("disconnect", () => {
+        console.log("client disconnected")
+    })
+})
+
+/* make io available in routes */
+app.set("io", io);
 
 
 //stripe webhook route
 app.use(
-  "/api/user/payments/webhook",
-  bodyParser.raw({ type: "application/json" })
+    "/api/user/payments/webhook",
+    bodyParser.raw({ type: "application/json" })
 );
 
 app.use(express.json());
@@ -40,14 +63,10 @@ mongoose.connect(mongooseUrl)
     .catch(err => console.log(`Database connection failed${err}`));
 
 //router handlers
-app.use('/api/admin',adminRouter);
-app.use('/api/user',userRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/user', userRouter);
 
 //listening port
-app.listen(PORT, (err) => {
-    if (err) {
-        console.error("Error starting server:", err);
-        process.exit(1);
-    }
+server.listen(PORT, () => {
     console.log(`server running on port:${PORT}`)
 })  

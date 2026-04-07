@@ -9,6 +9,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import Partner from "../models/Partner";
 import Project from "../models/Project";
+import Volunteer from "../models/Volunteer";
 const router = express.Router();
 
 const adminPassword = process.env.ADMIN_PASSWORD;
@@ -340,7 +341,46 @@ router.delete("/delete/project/:id", async (req, res) => {
     }
 });
 
+//get volunteers 
+router.get("/volunteers", async (req, res) => {
+    const volunteers = await Volunteer.find();
+    if (!volunteers) return res.status(404).json({ message: "No volunteers found" });
+    res.json(volunteers);
+});
 
+//delete volunteer
+router.delete("/volunteers/:id", async (req, res) => {
+    try {
+        const volunteerId = req.params.id;
+        const volunteer = await Volunteer.findById(volunteerId);
+        if (!volunteer) {
+            return res.status(404).json({ message: "Volunteer not found" });
+        }
+        await Volunteer.findByIdAndDelete(volunteerId);
+
+        res.status(200).json({ message: "Volunteer deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting volunteer:", error);
+        res.status(500).json({ message: "Failed to delete volunteer" });
+    }
+});
+
+//approve volunteer
+router.put("/volunteer/:id/approve", async (req, res) => {
+    try {
+        const volunteerId = req.params.id;
+        const volunteer = await Volunteer.findById(volunteerId)
+        if (!volunteer) {
+            return res.status(404).json({ message: "Volunteer not found" });
+        }
+        volunteer.status = "approved";
+        await volunteer.save()
+        res.status(200).json({ message: "Volunteer approved successfully" });
+    } catch (error) {
+        console.error("Error deleting volunteer:", error);
+        res.status(500).json({ message: "Failed to delete volunteer" });
+    }
+})
 
 
 

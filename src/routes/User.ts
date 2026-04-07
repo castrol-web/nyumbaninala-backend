@@ -263,10 +263,10 @@ router.post("/volunteers", async (req, res) => {
   try {
     const { name, email, country, phone, gender, startDate, endDate, skills, message, interests } = req.body;
 
-    if(!name || !email || !country || !phone || !gender || !startDate || !endDate) {
+    if (!name || !email || !country || !phone || !gender || !startDate || !endDate) {
       return res.status(400).json({ message: "Please fill in all required fields." });
     }
-    
+
     // calculate duration in days
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -289,9 +289,13 @@ router.post("/volunteers", async (req, res) => {
 
     await volunteer.save();
 
+    //socket
+    const io = req.app.get("io")
+    io.emit('new volunteer', volunteer)
     res.status(201).json({ message: "Volunteer application submitted" });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
+    console.error(error)
   }
 });
 
